@@ -150,7 +150,10 @@ obj.complete_incomplete_bands()
 #6. rearrange data from ENE[k-point][nband] to ENE[nband][k-point]
 obj.rearrange_data()
 print( 'No of bands = ',len(obj.ENE),'. Each of them on the grid of'),
-for i in obj.ENE: print(len(i), end=' '),
+try: 
+ for i in obj.ENE: print(len(i), end=' '),
+except: 
+ for i in obj.ENE: print len(i),
 print( 'kpoints')
 
 #7. check which bands cross EF
