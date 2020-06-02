@@ -101,6 +101,11 @@ def recip_vec_gen(a_vec,alat):
 
 def run_calc(VEC,alat,COMMAND,file_in, file_in2):
  os.system('cp '+(file_in)+' '+(file_in2))
+ try: 
+  h=open(file_in)
+  h.close()
+ except: 
+  raise ValueError(file_in+' not found. Copy filei5/fileo7 to filei50 and change last number to 999')
  h=open(file_in2,'a')
  if len(VEC)%2==0: h.write(str(int(len(VEC)/2))+'\n')
  else:  h.write(str(int(int(len(VEC)/2)+1))+'\n')
