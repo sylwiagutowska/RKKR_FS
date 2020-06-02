@@ -2,7 +2,7 @@
 import numpy as np
 import os
 import sys
-import rkkr_fermi_surface_color_and_symmetry_obiect_functions as func
+import rkkr_fermi_surface_functions as func
 ##### 1. CHANGE COMMAND VARIABLE
 ##### 2. IN DIRECTORY PUT
 #####    a) OUTPUT FILE FROM PREVIOUS CYCLE OF RKKR/RCPA (THE NAME OF FILE DOES NOT MATTER, BECAUSE I MAKE GREP *)
