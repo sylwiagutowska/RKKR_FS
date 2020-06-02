@@ -1,0 +1,8 @@
+rkkr-fermi_surface_color_and_symmetry.py: if 'R1' in i and len(a_vec)==0: a_vec.append(i)
+rkkr-fermi_surface_color_and_symmetry.py: if 'R2' in i and len(a_vec)==1: a_vec.append(i)
+Plik binarny rkkr_fermi_surface_color_and_symmetry_obiect_functions.pyc pasuje do wzorca
+rkkr-fermi_surface_color_and_symmetry.py: if 'R3' in i and len(a_vec)==2: a_vec.append(i)
+Plik binarny rkkr_fermi_surface_color_and_symmetry_obiect_functions.pyc pasuje do wzorca
+Plik binarny rkkr_fermi_surface_color_and_symmetry_obiect_functions.pyc pasuje do wzorca
+Plik binarny rkkr_fermi_surface_color_and_symmetry_obiect_functions.pyc pasuje do wzorca
+Plik binarny rkkr_fermi_surface_color_and_symmetry_obiect_functions.pyc pasuje do wzorca
