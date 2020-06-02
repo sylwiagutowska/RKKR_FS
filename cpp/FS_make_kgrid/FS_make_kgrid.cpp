@@ -1,6 +1,6 @@
-
 #include<iostream>
 #include <vector>       
+#include<cmath>
 double eps1=1e-4;
 
 using namespace std;
@@ -26,7 +26,8 @@ void check(int n,
   {
   int flag=1;
   int naux=0;
-  vector<double> kr{0,0,0};
+  vector<double> kr;
+  for (int i=0; i<3; i++) kr.push_back(0);
   for (int s=0; s<no_of_symm_op; s++){
      ruotaijk( SYM_OP[s],KVEC[n],kr ); 
      for (int j=0; j<3;j++){
@@ -58,7 +59,7 @@ int* FS_make_kgrid(int nkp,
 //innitialization
  int no_of_kpoint=nkp*nkp*nkp;
  //double** KVEC=new double*[no_of_kpoint];
- std::vector<vector<double>> KVEC; //STORAGE OF KPOINTS
+ std::vector<vector<double> > KVEC; //STORAGE OF KPOINTS
  KVEC.assign(no_of_kpoint,vector < double > (3, 0)); 
  //int* kw=new int[no_of_kpoint];
  std::vector<int> kw; //STORAGE OF WEIGHTS
