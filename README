@@ -1,0 +1,11 @@
+0. Compile C library in directory cpp/FS_make_kgrid/ with commands
+    g++ -c -fPIC FS_make_kgrid.cpp -o FS_make_kgrid.o
+    g++ -shared -Wl,-soname,libFS_make_kgrid.so -o libFS_make_kgrid.so FS_make_kgrid.o
+   If you did not do it, hopefully programm will do. :)
+1. In file rkkr_fermi_surface_main.py change COMMAND variable
+2. In your directory put
+#####    a) OUTPUT FILE FROM PREVIOUS CYCLE OF RKKR/RCPA 
+            (THE NAME OF FILE DOES NOT MATTER, BECAUSE I MAKE GREP *)
+#####    b) copy filei5 (or fileo7) to filei50 AND change last number to "999"
+3. CALL this program with python rkkr_fermi_surface_main.py and answer the questions
+4. CALL fermisurfer fermi.frsmf
