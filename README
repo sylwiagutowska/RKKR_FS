@@ -1,11 +1,22 @@
-0. Compile C library in directory cpp/FS_make_kgrid/ with commands
-    g++ -c -fPIC FS_make_kgrid.cpp -o FS_make_kgrid.o
-    g++ -shared -Wl,-soname,libFS_make_kgrid.so -o libFS_make_kgrid.so FS_make_kgrid.o
-   If you did not do it, hopefully programm will do. :)
-1. In file rkkr_fermi_surface_main.py change COMMAND variable
-2. In your directory put
-#####    a) OUTPUT FILE FROM PREVIOUS CYCLE OF RKKR/RCPA 
-            (THE NAME OF FILE DOES NOT MATTER, BECAUSE I MAKE GREP *)
-#####    b) copy filei5 (or fileo7) to filei50 AND change last number to "999"
-3. CALL this program with python rkkr_fermi_surface_main.py and answer the questions
-4. CALL fermisurfer fermi.frsmf
+##### 0. Be sure, that none of bands is cutted from the bottom (the bottom energy HAS TO be set in the band gap). 
+#####    Dont worry if bands are cutted from the top - I can reconstruct it (the top energy HAS NOT TO be set in the band gap)
+##### 1. CHANGE COMMAND VARIABLE
+##### 2. IN DIRECTORY PUT
+#####    a) OUTPUT FILE FROM PREVIOUS CYCLE OF RKKR/RCPA (THE NAME OF FILE DOES NOT MATTER, BECAUSE I MAKE GREP *)
+#####    b) copy filei5 or fileo7 to filei50 AND change last number to "999"
+##### 3. CALL this program with python2 rkkr-fermi_surface_color_and_symmetry_obiect.py and answer the questions
+##### 4. CALL fermisurfer fermi.frsmf
+
+##### Format of file_frmsf:
+#first line: nkp x nkp x nkp
+#second line: control number
+#third line: number of bands
+#4-6 lines: reciprocal lattice vectors (in 1/alat units)
+#then list of columns:
+# 1. E-ef(eV), 2. linewidth (eV) (if rcpa) or band index (if rkkr)
+##### Format of file_lifetime_frmsf:
+#1-6 lines like in file_frmsf; then
+# 1. E-ef(eV), 2. lifetime (ps) (if rcpa) or band index (if rkkr)
+##### Format of file_mayavi
+#first line: number of kpoints and number of bands; then:
+# 1. kx, 2. ky, 3.kz (in 1/alat units), 4. E-ef (eV)
