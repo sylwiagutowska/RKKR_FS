@@ -10,8 +10,106 @@ PRECIS=int(-np.log10(eps1))
 global eps2
 eps2 = 1.0e-5
 
+global Ry_to_Ev
+Ry_to_eV=13.606
+
+def ask_for_input(COMMAND_rkkr,COMMAND_rcpa,file_out):
+ nkp=24
+ liczba=3
+ try: nkp=int(raw_input('Number of calc. points in one direction: '))
+ except: nkp=int(input('Number of calc. points in one direction: '))
+ try: yn=(raw_input('Make calculations (y) or analysis only (n)? [n]'))
+ except: yn=(input('Make calculations (y) or analysis only (n)? [n]'))
+ try: liczba=int(raw_input('Rkkr (3)  or Rcpa (4)? Type 3 or 4 : '))
+ except: liczba=int(input('Rkkr (3)  or Rcpa (4)? Type 3 or 4 : '))
+ if 'y' not in yn:   
+  COMMAND=''
+ else:
+  if liczba==3: COMMAND=COMMAND_rkkr+" > " +file_out
+  elif liczba==4: COMMAND=COMMAND_rcpa +" > "+file_out
+ return nkp,COMMAND,liczba
 
 
+def choose_and_run_make_kgrid(nkp,SYMM_OP,b_vec,clib_dir,clib_file):
+ clib= clib_dir+clib_file
+ try: 
+   VEC,VEC_all=  make_kgrid_C_lib(nkp,SYMM_OP,b_vec,clib)
+ except: 
+   print("Library ctypes not present or "+clib+" not compiled."+ 
+         "I am trying to compile it")
+   try:
+    comm="g++ -c -fPIC "+clib+  \
+         " -o "+clib_dir+"/FS_make_kgrid.o"
+    print( "Command '"+comm+"' is running")
+    os.system(comm)
+    comm="g++ -shared -Wl,-soname,"+clib+" -o "+clib+" "+\
+          clib_dir+"/FS_make_kgrid.o"
+    print( "Command '"+comm+"' is running")
+    os.system(comm)
+   except:
+    print("Compilation not possible. The C function is not used."+\
+          "I will use python function, which is much slower.") 
+    VEC,VEC_all = make_k_grid(nkp,b_vec,SYMM_OP)
+   try:
+    func.make_kgrid_C_lib(nkp,SYMM_OP,b_vec,clib)
+   except:
+    print("C function is not working. Probably library ctypes cannot be import."\
+          +"I will use python function, which is much slower.")
+    VEC,VEC_all = make_k_grid(nkp,b_vec,SYMM_OP)
+ return VEC,VEC_all       
+
+def ruotaijk(s,k):
+  return [s[0][0]*k[0]+s[0][1]*k[1]+s[0][2]*k[2],
+  s[1][0]*k[0]+s[1][1]*k[1]+s[1][2]*k[2],
+  s[2][0]*k[0]+s[2][1]*k[1]+s[2][2]*k[2]]
+
+
+def check(n,k,kw,ieq,SYM_OP,nmax):
+  flag=1
+  for s in SYM_OP:
+     kr=ruotaijk( s,k[n] ) 
+     for j in range(3):
+        while kr[j]>=nmax:
+           kr[j]=kr[j]-nmax
+        while kr[j]<=-1:
+           kr[j]=kr[j]+nmax
+     for npk in range(n): 
+        if abs(kr[0]-k[npk][0])<eps1 and abs(kr[1]-k[npk][1])<eps1 and abs(kr[2]-k[npk][2])<eps1:
+           kw[n]=-1
+           naux =npk
+           while (kw[naux]==-1):
+              naux=ieq[naux]
+           ieq[n]=naux
+           kw[naux]=kw[naux]+1
+           flag=0
+           break
+     if flag==0: break
+   
+def make_k_grid(nkp,b_vec,SYMM_OP):
+ n=0
+ SYMM_OP=[np.transpose(np.array(s)) for s in SYMM_OP]
+ KVEC,kw,ieq=[],[1 for i in range(nkp*nkp*nkp)],[0 for i in range(nkp*nkp*nkp)]
+ for i in range(nkp):
+  print( i)
+  for j in range(nkp):
+   for k in range(nkp):
+    KVEC.append([i,j,k])
+    check(n,KVEC,kw,ieq,SYMM_OP,nkp)
+    n=n+1
+ NONEQKW=[]
+ NONEQK=[]
+ ieq_new=[]
+ KVEC=[ [ round(sum([v[m]*b_vec[m2][m]/nkp for m in range(3)]),4) for m2 in range(3)] for v in KVEC]
+ nk=0
+ for j in range(n):
+    if kw[j]!=-1: 
+        NONEQKW.append(kw[j])
+        NONEQK.append(KVEC[j])
+        KVEC[j].append(nk)
+        ieq_new.append(nk)
+        nk=nk+1
+    else: KVEC[j].append(KVEC[ieq[j]][3])
+ return NONEQK,KVEC
 
 def make_kgrid_C_lib(nkp,SYMM_OP,b_vec,file):
  lib = CDLL(file)
@@ -46,26 +144,6 @@ def make_kgrid_C_lib(nkp,SYMM_OP,b_vec,file):
     else: KVEC[j].append(KVEC[ieq[j]][3])
  return NONEQK,KVEC
 
-
-
-def ask_for_input(COMMAND):
- nkp=24
- liczba=3
- try: nkp=int(raw_input('Number of calc. points in one direction: '))
- except: nkp=int(input('Number of calc. points in one direction: '))
- try: yn=(raw_input('Make calculations (y) or analysis only (n)? [n]'))
- except: yn=(input('Make calculations (y) or analysis only (n)? [n]'))
- if 'y' not in yn:   
-  COMMAND=''
-  try: liczba=int(raw_input('Rkkr (3)  or Rcpa (4)? Type 3 or 4 : '))
-  except: liczba=int(input('Rkkr (3)  or Rcpa (4)? Type 3 or 4 : '))
- else:
-  if 'cpa' in COMMAND: liczba=4
-  elif 'kkr' in COMMAND: liczba=3
-  else:
-   try: liczba=int(raw_input('Rkkr (3)  or Rcpa (4)? Type 3 or 4 : '))
-   except: liczba=int(input('Rkkr (3)  or Rcpa (4)? Type 3 or 4 : '))
- return nkp,COMMAND,liczba
 
 def read_data():
  os.system('rm lattice_vectors.dat')
@@ -121,7 +199,7 @@ def run_calc(VEC,alat,COMMAND,file_in, file_in2):
     if i%2==0: h.write(str(2)+' ')
     h.write(str(v[0])+' '+str(v[1])+' '+str(v[2])+'\n')
  h.close()
- print('I am running calculations with command'+COMMAND)
+ print('I am running calculations with command '+COMMAND)
  os.system(COMMAND)
  print('...Calc done')
 
@@ -145,7 +223,7 @@ def read_ene(liczba,file_bands):
    nbnd.append(int(line[1]))
    ENE[-1].append([])
   elif len(line)==liczba:
-   ENE[-1][-1].append([float(line[1].replace('D','E'))-fermi, float(line[2].replace('D','E'))])
+   ENE[-1][-1].append([(float(line[1].replace('D','E'))-fermi)*Ry_to_eV, float(line[2].replace('D','E'))*Ry_to_eV])
  print ('from ',max(nbnd),' bands only ',min(nbnd),' are complete. I will approximate the rest.')
  return ENE,nbnd
 
@@ -205,7 +283,8 @@ def which_bands_cross_fermi(ENE0):
  return ENE
 
 def write_to_file(ENE,VEC,VEC_all,b_vec, alat,
-                  nkp,liczba,file_frmsf,file_mayavi):
+                  nkp,liczba,imE_to_lifetime_conv,
+                  file_frmsf,file_lifetime_frmsf,file_mayavi):
  h=open(file_frmsf,'w')
  for i in range(3): h.write(str(nkp)+' ')
  h.write('\n1\n'+str(len(ENE))+'\n')
@@ -218,11 +297,33 @@ def write_to_file(ENE,VEC,VEC_all,b_vec, alat,
  for ni,i in enumerate(ENE):
   for j in i:
     if liczba==3: h.write(str(ni)+'\n')
-    else: h.write(str(j[1])+'\n')
+    else: h.write(str(2*j[1])+'\n') #band linewidth
+ h.close()
+
+ h=open(file_lifetime_frmsf,'w')
+ for i in range(3): h.write(str(nkp)+' ')
+ h.write('\n1\n'+str(len(ENE))+'\n')
+ for i in range(3):
+  for j in range(3): h.write(str(b_vec[i][j]/alat[i])+' ')
+  h.write('\n')
+ for i in ENE:
+  for j in i:
+    h.write(str(j[0])+'\n')
+ divis=0
+ for ni,i in enumerate(ENE):
+  for j in i:
+    if liczba==3: h.write(str(ni)+'\n')
+    else: 
+     try: h.write(str(imE_to_lifetime_conv/j[1])+'\n') #lifetime
+     except: 
+        h.write('99999999999\n')  
+        divis=1
+ if divis==1: 
+  print('Warning: Division by 0 in fermi_lifetime.frmsf - the file is deleted')
+  os.system('rm '+file_lifetime_frmsf)
  #h.write(str(ni)+'\n')
  h.close()
 
- print('Print Fermi surface to file...')
  h=open(file_mayavi,'w')
  h.write(str(nkp*nkp*nkp)+' '+str(len(ENE))+' '+str(0.0)+' ')
  for b in range(len(ENE)):
@@ -401,58 +502,7 @@ def set_sym_bl(a_vec):
  print("Found "+str(nrot)+" symmetry operations")
  return  S[:nrot]
 
-def ruotaijk(s,k):
-  return [s[0][0]*k[0]+s[0][1]*k[1]+s[0][2]*k[2],
-  s[1][0]*k[0]+s[1][1]*k[1]+s[1][2]*k[2],
-  s[2][0]*k[0]+s[2][1]*k[1]+s[2][2]*k[2]]
 
-
-def check(n,k,kw,ieq,SYM_OP,nmax):
-  flag=1
-  for s in SYM_OP:
-     kr=ruotaijk( s,k[n] ) 
-     for j in range(3):
-        while kr[j]>=nmax:
-           kr[j]=kr[j]-nmax
-        while kr[j]<=-1:
-           kr[j]=kr[j]+nmax
-     for npk in range(n): 
-        if abs(kr[0]-k[npk][0])<eps1 and abs(kr[1]-k[npk][1])<eps1 and abs(kr[2]-k[npk][2])<eps1:
-           kw[n]=-1
-           naux =npk
-           while (kw[naux]==-1):
-              naux=ieq[naux]
-           ieq[n]=naux
-           kw[naux]=kw[naux]+1
-           flag=0
-           break
-     if flag==0: break
-   
-def make_k_grid(nkp,b_vec,SYMM_OP):
- n=0
- SYMM_OP=[np.transpose(np.array(s)) for s in SYMM_OP]
- KVEC,kw,ieq=[],[1 for i in range(nkp*nkp*nkp)],[0 for i in range(nkp*nkp*nkp)]
- for i in range(nkp):
-  print( i)
-  for j in range(nkp):
-   for k in range(nkp):
-    KVEC.append([i,j,k])
-    check(n,KVEC,kw,ieq,SYMM_OP,nkp)
-    n=n+1
- NONEQKW=[]
- NONEQK=[]
- ieq_new=[]
- KVEC=[ [ round(sum([v[m]*b_vec[m2][m]/nkp for m in range(3)]),4) for m2 in range(3)] for v in KVEC]
- nk=0
- for j in range(n):
-    if kw[j]!=-1: 
-        NONEQKW.append(kw[j])
-        NONEQK.append(KVEC[j])
-        KVEC[j].append(nk)
-        ieq_new.append(nk)
-        nk=nk+1
-    else: KVEC[j].append(KVEC[ieq[j]][3])
- return NONEQK,KVEC
 
 #### END OF FUNCTIONS
 

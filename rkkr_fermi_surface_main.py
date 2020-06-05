@@ -3,6 +3,8 @@ import numpy as np
 import os
 import sys
 import rkkr_fermi_surface_functions as func
+##### 0. Be sure, that none of bands is cutted from the bottom (the bottom energy HAS TO be set in the band gap). 
+#####    Dont worry if bands are cutted from the top - I can reconstruct it (the top energy HAS NOT TO be set in the band gap)
 ##### 1. CHANGE COMMAND VARIABLE
 ##### 2. IN DIRECTORY PUT
 #####    a) OUTPUT FILE FROM PREVIOUS CYCLE OF RKKR/RCPA (THE NAME OF FILE DOES NOT MATTER, BECAUSE I MAKE GREP *)
@@ -10,9 +12,23 @@ import rkkr_fermi_surface_functions as func
 ##### 3. CALL this program with python2 rkkr-fermi_surface_color_and_symmetry_obiect.py and answer the questions
 ##### 4. CALL fermisurfer fermi.frsmf
 
-
+##### Format of file_frmsf:
+#first line: nkp x nkp x nkp
+#second line: control number
+#third line: number of bands
+#4-6 lines: reciprocal lattice vectors (in 1/alat units)
+#then list of columns:
+# 1. E-ef(eV), 2. linewidth (eV) (if rcpa) or band index (if rkkr)
+##### Format of file_lifetime_frmsf:
+#1-6 lines like in file_frmsf; then
+# 1. E-ef(eV), 2. lifetime (ps) (if rcpa) or band index (if rkkr)
+##### Format of file_mayavi
+#first line: number of kpoints and number of bands; then:
+# 1. kx, 2. ky, 3.kz (in 1/alat units), 4. E-ef (eV)
 class init_calc:
     def __init__(self):
+        self.COMMAND_rkkr = 'rm fileo*;~/programy/RKKR/rkkr-hop/rkkr004-gf '
+        self.COMMAND_rcpa = 'rm fileo*;/home/syllwinka/programy/RKKR/SRC_2017/Rcpa005_17/rcpa005 '
         self.clib_name="libFS_make_kgrid.so"
         self.clib_dir=os.path.dirname(sys.argv[0])+"/cpp/FS_make_kgrid/"
         self.clib_file="FS_make_kgrid.cpp"
@@ -22,11 +38,15 @@ class init_calc:
         self.file_in2 = 'filei5' #=filei50 with list of kpoints added
         self.file_bands = 'fileo9' #rkkr/rcpa output file with bands
         self.file_out = 'FS_out' #my rkkr/rcpa output file with general info
-        self.COMMAND = 'rm fileo*;~/programy/RKKR/rkkr-hop/rkkr004-gf >'+self.file_out
-        self.file_frmsf = 'fermi.frmsf' #file where data are written, readable by fermisurfer
+        self.COMMAND=''
+        self.file_frmsf = 'fermi.frmsf' #file where data are written (with bandwith if rcpa is used, with the band index in case of rkkr), readable by fermisurfer
+        self.file_lifetime_frmsf = 'fermi_lifetime.frmsf' #file where the Fermi surface coloured by lifetime is written, readable by fermisurfer
         self.file_mayavi = 'FS.dat' #file where data are written, readable by my program FS (which uses mayavi library)
+        self.imE_to_lifetime_conv=32.91e-17*1e12 #t= conv/Im(E), E in Ry, t in ps
     def ask_for_input(self,file_out):
-        self.nkp,self.COMMAND,self.liczba = func.ask_for_input(self.COMMAND)
+        self.nkp,self.COMMAND,self.liczba =     \
+            func.ask_for_input(self.COMMAND_rkkr,self.COMMAND_rcpa,\
+                               self.file_out)
 
 
 class Obiekt(init_calc):
@@ -48,33 +68,10 @@ class Obiekt(init_calc):
     def recip_vec_gen(self):
         self.b_vec = func.recip_vec_gen(self.a_vec,self.alat)
     def make_k_grid(self):
-        #function written in C is much faster, but ctypes lib is needed. If not present, python function is used.
         print( "I am making k-grid...")
-        try: 
-          self.VEC,self.VEC_all=\
-          func.make_kgrid_C_lib(self.nkp,self.SYMM_OP,self.b_vec,\
-                                self.clib_dir+self.clib_name)
-        except: 
-          print("Library ctypes not present or "+self.clib_dir+self.clib_name+" not compiled. I am trying to compile it")
-          try:
-           comm="g++ -c -fPIC "+self.clib_dir+self.clib_file+  \
-                      " -o "+self.clib_dir+"/FS_make_kgrid.o"
-           print( "Command '"+comm+"' is running")
-           os.system(comm)
-           comm="g++ -shared -Wl,-soname,"+self.clib_dir+self.clib_name+ \
-                       " -o "+self.clib_dir+self.clib_name+" "+ \
-                     self.clib_dir+"/FS_make_kgrid.o"
-           print( "Command '"+comm+"' is running")
-           os.system(comm)
-          except:
-           print("Compilation not possible. The C function is not used. I will use python function, which is much slower.") 
-           self.VEC,self.VEC_all = func.make_k_grid(self.nkp,self.b_vec,self.SYMM_OP)
-          try:
-           func.make_kgrid_C_lib(self.nkp,self.SYMM_OP,self.b_vec,
-                                 self.clib_dir+self.clib_file)
-          except:
-           print("C function is not working. Probably library ctypes cannot be import. I will use python function, which is much slower.")
-           self.VEC,self.VEC_all = func.make_k_grid(self.nkp,self.b_vec,self.SYMM_OP)
+        #function written in C is much faster, but ctypes lib is needed. If not present, python function is used.
+        self.VEC,self.VEC_all=func.choose_and_run_make_kgrid(self.nkp,self.SYMM_OP,\
+                                          self.b_vec,  self.clib_dir,self.clib_file)
         print ("...K-grid done.")
     def read_ene(self):
         print ("...I am reading energies...")
@@ -102,7 +99,8 @@ class Obiekt(init_calc):
     def write_to_file(self):
         print ("...I am writting to file...")
         func.write_to_file(self.ENE,self.VEC,self.VEC_all,self.b_vec, self.alat, \
-                           self.nkp,self.liczba,self.file_frmsf,self.file_mayavi)
+                           self.nkp,self.liczba,self.imE_to_lifetime_conv,\
+                           self.file_frmsf,self.file_lifetime_frmsf,self.file_mayavi)
         print ("...Done")
 ####MAIN
 
@@ -147,6 +145,7 @@ h.close()
 obj.read_ene()
 obj.ene_from_irreducible_to_whole_grid()
 obj.complete_incomplete_bands()
+
 #6. rearrange data from ENE[k-point][nband] to ENE[nband][k-point]
 obj.rearrange_data()
 print( 'No of bands = ',len(obj.ENE),'. Each of them on the grid of'),
