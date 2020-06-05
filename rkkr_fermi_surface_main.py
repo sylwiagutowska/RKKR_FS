@@ -16,7 +16,7 @@ import rkkr_fermi_surface_functions as func
 #first line: nkp x nkp x nkp
 #second line: control number
 #third line: number of bands
-#4-6 lines: reciprocal lattice vectors (in 1/alat units)
+#4-6 lines: reciprocal lattice vectors (in 1/a_B)
 #then list of columns:
 # 1. E-ef(eV), 2. linewidth (eV) (if rcpa) or band index (if rkkr)
 ##### Format of file_lifetime_frmsf:
@@ -24,7 +24,7 @@ import rkkr_fermi_surface_functions as func
 # 1. E-ef(eV), 2. lifetime (ps) (if rcpa) or band index (if rkkr)
 ##### Format of file_mayavi
 #first line: number of kpoints and number of bands; then:
-# 1. kx, 2. ky, 3.kz (in 1/alat units), 4. E-ef (eV)
+# 1. kx, 2. ky, 3.kz (in 1/a_i units, a_i-lattice constants), 4. E-ef (eV)
 class init_calc:
     def __init__(self):
         self.COMMAND_rkkr = 'rm fileo*;~/programy/RKKR/rkkr-hop/rkkr004-gf '
