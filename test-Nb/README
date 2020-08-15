@@ -1,0 +1,12 @@
+Here is an example of Fermi surface of Nb
+
+The files in this folder are produced by RKKR program.
+If you wish to see Fermi surface, you need Fermisurfer software.
+
+In order to run:
+1) python2 ../rkkr_fermi_surface_main.py
+2) type: 36 
+   It is a number of k-points in one direction
+3) type: n
+4) type: 3
+5) fermisurfer fermi.frmsf
