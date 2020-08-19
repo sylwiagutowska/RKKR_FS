@@ -18,11 +18,11 @@ def ask_for_input(COMMAND_rkkr,COMMAND_rcpa,file_out):
  liczba=3
  try: nkp=int(raw_input('Number of calc. points in one direction: '))
  except: nkp=int(input('Number of calc. points in one direction: '))
- try: yn=(raw_input('Make calculations (y) or analysis only (n)? [n]'))
- except: yn=(input('Make calculations (y) or analysis only (n)? [n]'))
+ try: if_calc=(raw_input('Make calculations (y) or analysis only (n)? [n]'))
+ except: if_calc=(input('Make calculations (y) or analysis only (n)? [n]'))
  try: liczba=int(raw_input('Rkkr (3)  or Rcpa (4)? Type 3 or 4 : '))
  except: liczba=int(input('Rkkr (3)  or Rcpa (4)? Type 3 or 4 : '))
- if 'y' not in yn:   
+ if 'y' not in if_calc:   
   COMMAND=''
  else:
   if liczba==3: COMMAND=COMMAND_rkkr+" > " +file_out
@@ -155,13 +155,22 @@ def read_data():
  os.system('grep " c'+' ='+'" * >>lattice_vectors.dat 2> /dev/null')
  h=open('lattice_vectors.dat')
  xxx=[i for i  in h.readlines() if '0 ' in i]
- alat=[float(xxx[-3+m].split()[-2]) for m in range(3)]
+ if len(xxx)<6:   raise ValueError('You didnt copy any output of previous calculations (e.g. nohup.out) here. Please do it, I need to grep cell vectors.')
+ alat=[]
+ for i in xxx:
+  if ' a =  ' in i and len(alat)==0: alat.append(float(i.split()[-2]))
+  elif ' b =  ' in i and len(alat)==1: alat.append(float(i.split()[-2]))
+  elif ' c =  ' in i and len(alat)==2: alat.append(float(i.split()[-2]))
+ #float(xxx[-3+m].split()[-2]) for m in range(3)]
  a_vec=[]
  for i in xxx:
   for nj,j in enumerate(table):
    if j in i and len(a_vec)==nj: a_vec.append(i)
  a_vec=[ [float(j) for j in i.split()[4:7]] for i in a_vec]
+ print ('Cell vectors'),
  print( a_vec)
+ print('alat'),
+ print(alat)
  return a_vec,alat
 
 def recip_vec_gen(a_vec,alat):
@@ -174,7 +183,9 @@ def recip_vec_gen(a_vec,alat):
  vws=abs(sum([br[0][i]*bg[0][i] for i in range(3)]))
  bg=np.transpose(bg)
  bg=bg/vws
- bg=[ [round(m2) for m2 in bg[m]*alat[m]] for m in range(3)]
+# bg=[ [round(m2,3) for m2 in bg[m]*alat[m]] for m in range(3)]
+ bg=[ [round(bg[m][m2]*alat[m],3) for m2 in range(3)] for m in range(3)]
+ print ('bg=',bg)
  return bg
 
 def run_calc(VEC,alat,COMMAND,file_in, file_in2):
