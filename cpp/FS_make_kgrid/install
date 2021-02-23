@@ -1,0 +1,2 @@
+   g++ -c -fPIC FS_make_kgrid.cpp -o FS_make_kgrid.o
+    g++ -shared -Wl,-soname,libFS_make_kgrid.so -o libFS_make_kgrid.so FS_make_kgrid.o
