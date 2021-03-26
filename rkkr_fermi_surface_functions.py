@@ -353,8 +353,7 @@ def fix_bad_values(nband,nkp,ENE,prm):
  ENE0=[[[m for m in n] for n in o] for o in ENE]
  #ENE[kp][iband][0-1]
  print (prm)
- ENE0=[[[m for m in n] for n in o] for o in ENE]
- for mmmm in range(3):
+ for mmmm in range(5):
   for iband in range(nband):
    for ki in range(nkp*nkp*nkp):
      div_by=0
@@ -378,12 +377,12 @@ def fix_bad_values(nband,nkp,ENE,prm):
 #       else: 
 #        div_by+=1
 #        new_ene=ENE[ki][iband]
-      if div_by>=4: ENE[ki][iband]=[m/div_by for m in new_ene]
+     if div_by>=4: ENE[ki][iband]=[m/div_by for m in new_ene] #if div_by>=4 means if the problem exists in at least two directions
+   '''
    for ki in range(nkp*nkp*nkp-1,0):
      div_by=0
      new_ene=[0,0]
      indexes=[ki%nkp,(ki/nkp)%nkp,(ki/(nkp*nkp))]
-
      for ind in range(3): 
       if indexes[ind]==0:
        if abs(ENE[ki][iband][0]-ENE[ki+nkp**ind][iband][0])>prm:    
@@ -394,14 +393,15 @@ def fix_bad_values(nband,nkp,ENE,prm):
         div_by+=2
         new_ene=[new_ene[m]+2*ENE[ki-nkp**ind][iband][m] for m in range(2)]   
       else:
-       if abs(ENE[ki][iband][0]-ENE[ki-nkp**ind][iband][0])>prm:
+       if abs(ENE[ki][iband][0]-ENE[ki+nkp**ind][iband][0])>prm:
         if if_from_another_band(ENE0,ENE,nband,iband,ki+nkp**ind,ki-nkp**ind,ki): continue
         div_by+=2
         new_ene=[new_ene[m]+(ENE[ki-nkp**ind][iband][m]+ENE[ki+nkp**ind][iband][m]) for m in range(2)]
 #       else: 
 #        div_by+=1
 #        new_ene=ENE[ki][iband]
-      if div_by>=4: ENE[ki][iband]=[m/div_by for m in new_ene]
+     if div_by>=4: ENE[ki][iband]=[m/div_by for m in new_ene]
+   '''
  return ENE
 
 def if_from_another_band2(ENE0,ENE,nband,j,i_next,i_before,i_actual,prm):
@@ -443,6 +443,33 @@ def fix_bad_values2(nband,nkp,ENE,prm):
       if div_by==6: ENE[ki][iband]=[m/div_by for m in new_ene]
  return ENE
 
+def remove_asked_points(iband,nkp,ENE,kpoint,no_of_excl_kpt,new_value): 
+ dk=1./nkp
+ nk=int(no_of_excl_kpt/2)
+ ind=[int(kpoint[0]*nkp),int(kpoint[1]*nkp),int(kpoint[2]*nkp)]
+ for i in range(no_of_excl_kpt): 
+  for j in range(no_of_excl_kpt):
+   for k in range(no_of_excl_kpt):
+    ind2=[ ind[0]+i-nk, ind[1]+j-nk,ind[2]+k-nk]
+    print(ind2,'changed',ENE[ind2[0]*nkp*nkp+ind2[1]*nkp+ind2[2]][iband][0])
+    ENE[ind2[0]*nkp*nkp+ind2[1]*nkp+ind2[2]][iband][0]=new_value
+
+
+def sort_bands(nband,nkp,ENE,prm): 
+ for iband in range(nband):
+   for ki in range(nkp*nkp*nkp):
+     div_by=0
+     new_ene=[0,0]
+     indexes=[ki%nkp,(ki/nkp)%nkp,(ki/(nkp*nkp))]
+     if not 0 in indexes  and not nkp-1 in indexes:
+      for jband in range(iband+1,nband):
+       if abs(ENE[ki][jband]-ENE[ki][iband])<1e-3/13.606:
+         for kip in range(ki,-1):
+          ENE[kip][jband],ENE[kip][iband]=ENE[kip][iband][:],ENE[kip][jband][:]
+         break          
+
+ return ENE
+
 
 def rearrange_data(nband,ENE):
  ENE=[  [ENE[i][k][:] for i in range(len(ENE))]  for k in range(nband)]
@@ -458,6 +485,73 @@ def which_bands_cross_fermi(ENE0):
      break
   if isfermi==1: ENE.append(i)
  return ENE
+
+def plot_spaghetti(nbnd,nkp,ENE,VEC_all,KPT):
+ dk=1./nkp
+ KPT=np.round(np.array(KPT)*(nkp))
+# for i in range(len(KPT)): KPT[i]=KPT[i]+np.array([1,1,1])*(nkp-2)/2.
+ KPTall=[]
+ Kall=np.round(np.array([ k[:3] for k in VEC_all])*nkp/.99)
+# for i in Kall: i=i+np.array([1,1,1])
+ KPT = KPT.astype('int_')
+ Kall=Kall.astype('int_')
+ print Kall
+ licznik,high_sym_points,znaczniki=-1,[0],[]
+ for i in range(len(KPT)-1):
+  print KPT[i]
+  dk=(KPT[i+1]-KPT[i])
+  nkp2=max(abs(dk))
+  for j in range(nkp2):
+   dkj=(dk/nkp2*j).astype('int_')
+   kpdkj=KPT[i]+dkj
+   if kpdkj[0]==0 and kpdkj[1]==0 and kpdkj[2]==0 and KPT[i][0]!=0  and KPT[i][1]!=0 and KPT[i][2]!=0 : continue
+   KPTall.append(kpdkj)
+   licznik+=1
+  KPTall.append(KPT[i+1])
+  licznik+=1
+  high_sym_points.append(licznik)
+
+ print len(KPTall)
+ h=open('bands.dat','w')
+ path=0.
+ for i in range(len(KPTall)):
+  found=0
+  if i!=0: path=path+(sum([m**2 for m in KPTall[i]-KPTall[i-1]]))**0.5/(float(nkp))
+  if i in high_sym_points: znaczniki.append([path,KPTall[i]/(float(nkp))])
+  for j in range(len(Kall)):
+   if Kall[j][0]==KPTall[i][0] and Kall[j][1]==KPTall[i][1] and Kall[j][2]==KPTall[i][2]:
+    h.write(str(path)+' ')
+    for bnd in range(nbnd): h.write(str(ENE[j][bnd][0])+' '+str(2*ENE[j][bnd][1])+' ')
+    h.write('\n')
+    found=1
+    break
+  if found==0:   print(KPTall[i],'not found')
+ h.close()
+
+ minENE=min([min([ i[0] for i in j]) for j in ENE])*13.606
+ maxENE=max([max([ i[0] for i in j]) for j in ENE])*13.606
+ h=open('bands.gnu','w')
+ h.write('\
+ set terminal pdf\n\
+ set output "bands.pdf"\n\
+ set yrange ['+str(minENE)+':'+str(maxENE)+']\n\
+ set xrange ['+str(znaczniki[0][0])+':'+str(znaczniki[-1][0])+']\n\
+ dx=0.2\n\
+ dy=0.1\n\
+ unset xtics\n\
+ ')
+ for i in znaczniki:
+  kpt2=''
+  print i
+  for j in i[1]: kpt2+=str(round(j,1))+','
+  h.write('set arrow from '+str(i[0])+','+str(minENE)+' to '+str(i[0])+','+str(maxENE)+' nohead\n')
+  h.write('set label "'+kpt2+'" at '+str(i[0])+'-dx, '+str(minENE)+'-dy \n')
+ h.write('plot for [i=2:'+str(2*nbnd+1)+':2] "bands.dat" u 1:(column(i)*13.606):(5*column(i+1)) w lp pt 7 ps variable t "", 0 w l lc 0 t ""\n')
+ h.write('plot for [i=2:'+str(2*nbnd+1)+':2] "bands.dat" u 1:(column(i)*13.606) w lp ps 0.5  t "", 0 w l lc 0 t ""')
+ h.close() 
+ os.system('gnuplot bands.gnu')
+
+
 
 def write_to_file(ENE,VEC,VEC_all,b_vec, alat,\
                   nkp,liczba,imE_to_lifetime_conv,\

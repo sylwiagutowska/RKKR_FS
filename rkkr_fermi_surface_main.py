@@ -104,6 +104,8 @@ class Obiekt(init_calc):
         print ("...I am reconstructing incomplete conducting bands...")
         self.nband,self.ENE = func.complete_incomplete_bands(self.nbnd,self.ENE)
         print ("...Done.")
+    def remove_asked_points(self,iband,kpoint,no_of_excl_kpt,new_value):
+	func.remove_asked_points(iband,self.nkp,self.ENE,kpoint,no_of_excl_kpt,new_value)
     def rearrange_data(self):
         print ("...I am rearranging data...")
         self.ENE = func.rearrange_data(self.nband,self.ENE)
@@ -119,7 +121,10 @@ class Obiekt(init_calc):
         func.write_to_file(self.ENE,self.VEC,self.VEC_all,self.b_vec, self.alat, \
                            self.nkp,self.liczba,self.imE_to_lifetime_conv,\
                            self.file_frmsf,self.file_lifetime_frmsf,self.file_mayavi)
-        print ("...Done")
+    def plot_spaghetti(self,KPT):
+        print ("...I am doing a spaghetti...")
+	func.plot_spaghetti(self.nband,self.nkp,self.ENE,self.VEC_all,KPT)
+        print ("...written to bands.dat, bands.gnu and bands.pdf")
 ####MAIN
 
 
@@ -164,6 +169,8 @@ obj.read_ene()
 obj.ene_from_irreducible_to_whole_grid()
 obj.complete_incomplete_bands()
 obj.fix_bad_values()
+#obj.remove_asked_points(6,[0.5,0.5,0.5],10,-1)
+obj.plot_spaghetti([[0,0,0],[0.5,0.5,0],[.5,0,0],[0,0,0],[.5,.5,.5],[.5,0.5,0]])
 #6. rearrange data from ENE[k-point][nband] to ENE[nband][k-point]
 obj.rearrange_data()
 print( 'No of bands = ',len(obj.ENE),'. Each of them on the grid of'),
